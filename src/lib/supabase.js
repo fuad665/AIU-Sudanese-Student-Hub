@@ -7,8 +7,8 @@
 // ─────────────────────────────────────────────
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://oydscytbdhpwyrmffosj.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95ZHNjeXRiZGhwd3lybWZmb3NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNTYzOTYsImV4cCI6MjA5NTczMjM5Nn0.DExaTVuNCZgw2FsOUO8uC_iRJf0434Mlwmcit-eIL_w';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error(
