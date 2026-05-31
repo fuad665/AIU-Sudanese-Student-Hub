@@ -1,13 +1,56 @@
 -- ============================================================
---  SSA Web Hub — Supabase PostgreSQL Schema  v1.2
+--  SSA Web Hub — Supabase PostgreSQL Schema  v2.0
 --
---  ✅  100% SAFE TO RE-RUN — uses DO blocks for ENUMs
---      and CREATE TABLE IF NOT EXISTS for tables.
+--  ⚠️  WARNING: THIS SCRIPT CLEARS ALL EXISTING TABLES, VIEWS,
+--      TYPES AND FUNCTIONS BEFORE RECREATING THEM (TEARDOWN).
 --
 --  HOW TO USE:
 --  1. Go to https://supabase.com/dashboard/project/oydscytbdhpwyrmffosj/sql/new
 --  2. Paste the ENTIRE file and click Run.
 -- ============================================================
+
+
+-- ────────────────────────────────────────────
+--  TEARDOWN (DROP OLD DATABASE OBJECTS)
+-- ────────────────────────────────────────────
+RAISE NOTICE 'Starting database teardown...';
+
+-- Drop Views
+DROP VIEW IF EXISTS public.current_government CASCADE;
+DROP VIEW IF EXISTS public.election_results CASCADE;
+
+-- Drop Tables (Cascades will drop dependent constraints, indexes, and triggers)
+DROP TABLE IF EXISTS public.mentorship_requests CASCADE;
+DROP TABLE IF EXISTS public.alumni CASCADE;
+DROP TABLE IF EXISTS public.election_votes CASCADE;
+DROP TABLE IF EXISTS public.election_candidates CASCADE;
+DROP TABLE IF EXISTS public.elections CASCADE;
+DROP TABLE IF EXISTS public.event_rsvps CASCADE;
+DROP TABLE IF EXISTS public.events CASCADE;
+DROP TABLE IF EXISTS public.announcements CASCADE;
+DROP TABLE IF EXISTS public.government_term_members CASCADE;
+DROP TABLE IF EXISTS public.government_term_achievements CASCADE;
+DROP TABLE IF EXISTS public.government_terms CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
+-- Drop Enum Types
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS user_status CASCADE;
+DROP TYPE IF EXISTS announcement_category CASCADE;
+DROP TYPE IF EXISTS announcement_importance CASCADE;
+DROP TYPE IF EXISTS election_status CASCADE;
+DROP TYPE IF EXISTS event_category CASCADE;
+DROP TYPE IF EXISTS rsvp_status CASCADE;
+DROP TYPE IF EXISTS mentorship_status CASCADE;
+
+-- Drop Functions
+DROP FUNCTION IF EXISTS public.handle_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS public.get_my_user_id() CASCADE;
+DROP FUNCTION IF EXISTS public.get_my_role() CASCADE;
+DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
+DROP FUNCTION IF EXISTS public.is_gov_or_admin() CASCADE;
+
+RAISE NOTICE 'Teardown complete. Rebuilding schema...';
 
 
 -- ────────────────────────────────────────────
@@ -19,48 +62,23 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ────────────────────────────────────────────
 --  ENUM TYPES
---  DO blocks silently skip if the type already exists.
 -- ────────────────────────────────────────────
-
-DO $$ BEGIN
-  CREATE TYPE user_role AS ENUM ('member', 'government', 'admin');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE user_status AS ENUM ('pending', 'active', 'government', 'alumni');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE announcement_category AS ENUM ('General', 'Academic', 'Social', 'Financial');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE announcement_importance AS ENUM ('normal', 'high');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE election_status AS ENUM ('not_started', 'active', 'ended', 'published');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE event_category AS ENUM ('cultural', 'academic', 'sports', 'social', 'official');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE rsvp_status AS ENUM ('confirmed', 'cancelled');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE mentorship_status AS ENUM ('pending', 'accepted', 'declined');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TYPE user_role AS ENUM ('member', 'government', 'admin');
+CREATE TYPE user_status AS ENUM ('pending', 'active', 'government', 'alumni');
+CREATE TYPE announcement_category AS ENUM ('General', 'Academic', 'Social', 'Financial');
+CREATE TYPE announcement_importance AS ENUM ('normal', 'high');
+CREATE TYPE election_status AS ENUM ('not_started', 'active', 'ended', 'published');
+CREATE TYPE event_category AS ENUM ('cultural', 'academic', 'sports', 'social', 'official');
+CREATE TYPE rsvp_status AS ENUM ('confirmed', 'cancelled');
+CREATE TYPE mentorship_status AS ENUM ('pending', 'accepted', 'declined');
 
 
 -- ────────────────────────────────────────────
 --  TABLES
 -- ────────────────────────────────────────────
 
--- USERS
-CREATE TABLE IF NOT EXISTS public.users (
+-- USERS (Profiles linked to Supabase Auth)
+CREATE TABLE public.users (
   id              UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
   auth_id         UUID         UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
   name            TEXT         NOT NULL,
@@ -80,7 +98,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 -- ANNOUNCEMENTS
-CREATE TABLE IF NOT EXISTS public.announcements (
+CREATE TABLE public.announcements (
   id              UUID                     PRIMARY KEY DEFAULT uuid_generate_v4(),
   title           TEXT                     NOT NULL,
   content         TEXT                     NOT NULL,
@@ -94,7 +112,7 @@ CREATE TABLE IF NOT EXISTS public.announcements (
 );
 
 -- EVENTS
-CREATE TABLE IF NOT EXISTS public.events (
+CREATE TABLE public.events (
   id              UUID           PRIMARY KEY DEFAULT uuid_generate_v4(),
   title           TEXT           NOT NULL,
   description     TEXT,
@@ -110,7 +128,7 @@ CREATE TABLE IF NOT EXISTS public.events (
 );
 
 -- EVENT RSVPs
-CREATE TABLE IF NOT EXISTS public.event_rsvps (
+CREATE TABLE public.event_rsvps (
   id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_id    UUID        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   user_id     UUID        NOT NULL REFERENCES public.users(id)  ON DELETE CASCADE,
@@ -120,7 +138,7 @@ CREATE TABLE IF NOT EXISTS public.event_rsvps (
 );
 
 -- ELECTIONS
-CREATE TABLE IF NOT EXISTS public.elections (
+CREATE TABLE public.elections (
   id              UUID             PRIMARY KEY DEFAULT uuid_generate_v4(),
   title           TEXT             NOT NULL,
   description     TEXT,
@@ -135,7 +153,7 @@ CREATE TABLE IF NOT EXISTS public.elections (
 );
 
 -- ELECTION CANDIDATES
-CREATE TABLE IF NOT EXISTS public.election_candidates (
+CREATE TABLE public.election_candidates (
   id           UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
   election_id  UUID    NOT NULL REFERENCES public.elections(id) ON DELETE CASCADE,
   user_id      UUID    REFERENCES public.users(id) ON DELETE SET NULL,
@@ -149,7 +167,7 @@ CREATE TABLE IF NOT EXISTS public.election_candidates (
 );
 
 -- ELECTION VOTES
-CREATE TABLE IF NOT EXISTS public.election_votes (
+CREATE TABLE public.election_votes (
   id           UUID  PRIMARY KEY DEFAULT uuid_generate_v4(),
   election_id  UUID  NOT NULL REFERENCES public.elections(id)           ON DELETE CASCADE,
   candidate_id UUID  NOT NULL REFERENCES public.election_candidates(id) ON DELETE CASCADE,
@@ -159,7 +177,7 @@ CREATE TABLE IF NOT EXISTS public.election_votes (
 );
 
 -- ALUMNI
-CREATE TABLE IF NOT EXISTS public.alumni (
+CREATE TABLE public.alumni (
   id              UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id         UUID    REFERENCES public.users(id) ON DELETE SET NULL,
   full_name       TEXT    NOT NULL,
@@ -182,7 +200,7 @@ CREATE TABLE IF NOT EXISTS public.alumni (
 );
 
 -- MENTORSHIP REQUESTS
-CREATE TABLE IF NOT EXISTS public.mentorship_requests (
+CREATE TABLE public.mentorship_requests (
   id           UUID               PRIMARY KEY DEFAULT uuid_generate_v4(),
   alumni_id    UUID               NOT NULL REFERENCES public.alumni(id) ON DELETE CASCADE,
   requester_id UUID               NOT NULL REFERENCES public.users(id)  ON DELETE CASCADE,
@@ -194,7 +212,7 @@ CREATE TABLE IF NOT EXISTS public.mentorship_requests (
 );
 
 -- GOVERNMENT TERMS
-CREATE TABLE IF NOT EXISTS public.government_terms (
+CREATE TABLE public.government_terms (
   id          UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
   tenure      TEXT    NOT NULL UNIQUE,
   president   TEXT,
@@ -202,14 +220,16 @@ CREATE TABLE IF NOT EXISTS public.government_terms (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.government_term_achievements (
+-- GOVERNMENT TERM ACHIEVEMENTS
+CREATE TABLE public.government_term_achievements (
   id          UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
   term_id     UUID    NOT NULL REFERENCES public.government_terms(id) ON DELETE CASCADE,
   achievement TEXT    NOT NULL,
   sort_order  INTEGER DEFAULT 0
 );
 
-CREATE TABLE IF NOT EXISTS public.government_term_members (
+-- GOVERNMENT TERM MEMBERS
+CREATE TABLE public.government_term_members (
   id          UUID    PRIMARY KEY DEFAULT uuid_generate_v4(),
   term_id     UUID    NOT NULL REFERENCES public.government_terms(id) ON DELETE CASCADE,
   user_id     UUID    REFERENCES public.users(id) ON DELETE SET NULL,
@@ -220,44 +240,42 @@ CREATE TABLE IF NOT EXISTS public.government_term_members (
 
 
 -- ────────────────────────────────────────────
---  INDEXES  (IF NOT EXISTS — safe to re-run)
+--  INDEXES
 -- ────────────────────────────────────────────
+CREATE INDEX idx_users_student_id     ON public.users(student_id);
+CREATE INDEX idx_users_email          ON public.users(email);
+CREATE INDEX idx_users_role           ON public.users(role);
+CREATE INDEX idx_users_status         ON public.users(status);
 
-CREATE INDEX IF NOT EXISTS idx_users_student_id     ON public.users(student_id);
-CREATE INDEX IF NOT EXISTS idx_users_email          ON public.users(email);
-CREATE INDEX IF NOT EXISTS idx_users_role           ON public.users(role);
-CREATE INDEX IF NOT EXISTS idx_users_status         ON public.users(status);
+CREATE INDEX idx_ann_category         ON public.announcements(category);
+CREATE INDEX idx_ann_importance       ON public.announcements(importance);
+CREATE INDEX idx_ann_published_at     ON public.announcements(published_at DESC);
+CREATE INDEX idx_ann_author_id        ON public.announcements(author_id);
 
-CREATE INDEX IF NOT EXISTS idx_ann_category         ON public.announcements(category);
-CREATE INDEX IF NOT EXISTS idx_ann_importance       ON public.announcements(importance);
-CREATE INDEX IF NOT EXISTS idx_ann_published_at     ON public.announcements(published_at DESC);
-CREATE INDEX IF NOT EXISTS idx_ann_author_id        ON public.announcements(author_id);
+CREATE INDEX idx_events_date          ON public.events(event_date);
+CREATE INDEX idx_events_category      ON public.events(category);
 
-CREATE INDEX IF NOT EXISTS idx_events_date          ON public.events(event_date);
-CREATE INDEX IF NOT EXISTS idx_events_category      ON public.events(category);
+CREATE INDEX idx_rsvps_event_id       ON public.event_rsvps(event_id);
+CREATE INDEX idx_rsvps_user_id        ON public.event_rsvps(user_id);
 
-CREATE INDEX IF NOT EXISTS idx_rsvps_event_id       ON public.event_rsvps(event_id);
-CREATE INDEX IF NOT EXISTS idx_rsvps_user_id        ON public.event_rsvps(user_id);
+CREATE INDEX idx_elections_status     ON public.elections(status);
+CREATE INDEX idx_elections_position   ON public.elections(position);
 
-CREATE INDEX IF NOT EXISTS idx_elections_status     ON public.elections(status);
-CREATE INDEX IF NOT EXISTS idx_elections_position   ON public.elections(position);
+CREATE INDEX idx_candidates_election  ON public.election_candidates(election_id);
 
-CREATE INDEX IF NOT EXISTS idx_candidates_election  ON public.election_candidates(election_id);
+CREATE INDEX idx_votes_election_id    ON public.election_votes(election_id);
+CREATE INDEX idx_votes_voter_id       ON public.election_votes(voter_id);
 
-CREATE INDEX IF NOT EXISTS idx_votes_election_id    ON public.election_votes(election_id);
-CREATE INDEX IF NOT EXISTS idx_votes_voter_id       ON public.election_votes(voter_id);
+CREATE INDEX idx_alumni_industry      ON public.alumni(industry);
+CREATE INDEX idx_alumni_mentor        ON public.alumni(mentor_status);
+CREATE INDEX idx_alumni_grad_year     ON public.alumni(graduation_year DESC);
 
-CREATE INDEX IF NOT EXISTS idx_alumni_industry      ON public.alumni(industry);
-CREATE INDEX IF NOT EXISTS idx_alumni_mentor        ON public.alumni(mentor_status);
-CREATE INDEX IF NOT EXISTS idx_alumni_grad_year     ON public.alumni(graduation_year DESC);
-
-CREATE INDEX IF NOT EXISTS idx_gov_terms_is_current ON public.government_terms(is_current);
+CREATE INDEX idx_gov_terms_is_current ON public.government_terms(is_current);
 
 
 -- ────────────────────────────────────────────
---  TRIGGER: auto-update updated_at
+--  TRIGGERS (auto-update updated_at)
 -- ────────────────────────────────────────────
-
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
@@ -266,47 +284,34 @@ BEGIN
 END;
 $$;
 
-DO $$ BEGIN
-  CREATE TRIGGER trg_users_updated_at
-    BEFORE UPDATE ON public.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TRIGGER trg_users_updated_at
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DO $$ BEGIN
-  CREATE TRIGGER trg_announcements_updated_at
-    BEFORE UPDATE ON public.announcements
-    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TRIGGER trg_announcements_updated_at
+  BEFORE UPDATE ON public.announcements
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DO $$ BEGIN
-  CREATE TRIGGER trg_events_updated_at
-    BEFORE UPDATE ON public.events
-    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TRIGGER trg_events_updated_at
+  BEFORE UPDATE ON public.events
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DO $$ BEGIN
-  CREATE TRIGGER trg_elections_updated_at
-    BEFORE UPDATE ON public.elections
-    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TRIGGER trg_elections_updated_at
+  BEFORE UPDATE ON public.elections
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DO $$ BEGIN
-  CREATE TRIGGER trg_alumni_updated_at
-    BEFORE UPDATE ON public.alumni
-    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TRIGGER trg_alumni_updated_at
+  BEFORE UPDATE ON public.alumni
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DO $$ BEGIN
-  CREATE TRIGGER trg_mentorship_updated_at
-    BEFORE UPDATE ON public.mentorship_requests
-    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TRIGGER trg_mentorship_updated_at
+  BEFORE UPDATE ON public.mentorship_requests
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 
 -- ────────────────────────────────────────────
---  ROW LEVEL SECURITY
+--  ROW LEVEL SECURITY (RLS)
 -- ────────────────────────────────────────────
-
 ALTER TABLE public.users                        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events                       ENABLE ROW LEVEL SECURITY;
@@ -321,12 +326,23 @@ ALTER TABLE public.government_term_achievements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.government_term_members      ENABLE ROW LEVEL SECURITY;
 
 
--- Helper functions
+-- ────────────────────────────────────────────
+--  SECURITY HELPER FUNCTIONS (Bypasses RLS)
+-- ────────────────────────────────────────────
+
+-- Get the public.users.id corresponding to the active auth.uid()
+CREATE OR REPLACE FUNCTION public.get_my_user_id()
+RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT id FROM public.users WHERE auth_id = auth.uid() LIMIT 1;
+$$;
+
+-- Get the user_role for the active auth.uid()
 CREATE OR REPLACE FUNCTION public.get_my_role()
 RETURNS user_role LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT role FROM public.users WHERE auth_id = auth.uid() LIMIT 1;
 $$;
 
+-- Check if current user is an admin
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT EXISTS (
@@ -334,6 +350,7 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
   );
 $$;
 
+-- Check if current user is government or admin
 CREATE OR REPLACE FUNCTION public.is_gov_or_admin()
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT EXISTS (
@@ -342,165 +359,143 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
 $$;
 
 
--- POLICIES — drop first so re-runs don't fail
+-- ────────────────────────────────────────────
+--  POLICIES
+-- ────────────────────────────────────────────
 
--- users
-DROP POLICY IF EXISTS "users: authenticated can read all" ON public.users;
-DROP POLICY IF EXISTS "users: update own profile"         ON public.users;
-DROP POLICY IF EXISTS "users: insert own on register"     ON public.users;
-DROP POLICY IF EXISTS "users: admin full access"          ON public.users;
-
+-- USERS
 CREATE POLICY "users: authenticated can read all"
   ON public.users FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "users: update own profile"
   ON public.users FOR UPDATE TO authenticated
   USING (auth_id = auth.uid()) WITH CHECK (auth_id = auth.uid());
+
 CREATE POLICY "users: insert own on register"
   ON public.users FOR INSERT TO authenticated
   WITH CHECK (auth_id = auth.uid());
+
 CREATE POLICY "users: admin full access"
   ON public.users FOR ALL TO authenticated USING (public.is_admin());
 
 
--- announcements
-DROP POLICY IF EXISTS "announcements: all can read"      ON public.announcements;
-DROP POLICY IF EXISTS "announcements: gov+ can create"   ON public.announcements;
-DROP POLICY IF EXISTS "announcements: admin can update"  ON public.announcements;
-DROP POLICY IF EXISTS "announcements: admin can delete"  ON public.announcements;
-
+-- ANNOUNCEMENTS
 CREATE POLICY "announcements: all can read"
   ON public.announcements FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "announcements: gov+ can create"
   ON public.announcements FOR INSERT TO authenticated WITH CHECK (public.is_gov_or_admin());
+
 CREATE POLICY "announcements: admin can update"
   ON public.announcements FOR UPDATE TO authenticated USING (public.is_admin());
+
 CREATE POLICY "announcements: admin can delete"
   ON public.announcements FOR DELETE TO authenticated USING (public.is_admin());
 
 
--- events
-DROP POLICY IF EXISTS "events: all can read"     ON public.events;
-DROP POLICY IF EXISTS "events: gov+ can create"  ON public.events;
-DROP POLICY IF EXISTS "events: admin can modify" ON public.events;
-DROP POLICY IF EXISTS "events: admin can delete" ON public.events;
-
+-- EVENTS
 CREATE POLICY "events: all can read"
   ON public.events FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "events: gov+ can create"
   ON public.events FOR INSERT TO authenticated WITH CHECK (public.is_gov_or_admin());
+
 CREATE POLICY "events: admin can modify"
   ON public.events FOR UPDATE TO authenticated USING (public.is_admin());
+
 CREATE POLICY "events: admin can delete"
   ON public.events FOR DELETE TO authenticated USING (public.is_admin());
 
 
--- event_rsvps
-DROP POLICY IF EXISTS "rsvps: own or admin read" ON public.event_rsvps;
-DROP POLICY IF EXISTS "rsvps: insert own"        ON public.event_rsvps;
-DROP POLICY IF EXISTS "rsvps: update own"        ON public.event_rsvps;
-DROP POLICY IF EXISTS "rsvps: delete own"        ON public.event_rsvps;
-
+-- EVENT RSVPs
 CREATE POLICY "rsvps: own or admin read"
   ON public.event_rsvps FOR SELECT TO authenticated
-  USING (user_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()) OR public.is_admin());
+  USING (user_id = public.get_my_user_id() OR public.is_admin());
+
 CREATE POLICY "rsvps: insert own"
   ON public.event_rsvps FOR INSERT TO authenticated
-  WITH CHECK (user_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+  WITH CHECK (user_id = public.get_my_user_id());
+
 CREATE POLICY "rsvps: update own"
   ON public.event_rsvps FOR UPDATE TO authenticated
-  USING (user_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+  USING (user_id = public.get_my_user_id());
+
 CREATE POLICY "rsvps: delete own"
   ON public.event_rsvps FOR DELETE TO authenticated
-  USING (user_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+  USING (user_id = public.get_my_user_id());
 
 
--- elections
-DROP POLICY IF EXISTS "elections: all can read"       ON public.elections;
-DROP POLICY IF EXISTS "elections: admin full control" ON public.elections;
-
+-- ELECTIONS
 CREATE POLICY "elections: all can read"
   ON public.elections FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "elections: admin full control"
   ON public.elections FOR ALL TO authenticated USING (public.is_admin());
 
 
--- election_candidates
-DROP POLICY IF EXISTS "candidates: all can read"  ON public.election_candidates;
-DROP POLICY IF EXISTS "candidates: admin manages" ON public.election_candidates;
-
+-- ELECTION CANDIDATES
 CREATE POLICY "candidates: all can read"
   ON public.election_candidates FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "candidates: admin manages"
   ON public.election_candidates FOR ALL TO authenticated USING (public.is_admin());
 
 
--- election_votes
-DROP POLICY IF EXISTS "votes: own or admin read"       ON public.election_votes;
-DROP POLICY IF EXISTS "votes: authenticated can vote"  ON public.election_votes;
-
+-- ELECTION VOTES
 CREATE POLICY "votes: own or admin read"
   ON public.election_votes FOR SELECT TO authenticated
-  USING (voter_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()) OR public.is_admin());
+  USING (voter_id = public.get_my_user_id() OR public.is_admin());
+
 CREATE POLICY "votes: authenticated can vote"
   ON public.election_votes FOR INSERT TO authenticated
-  WITH CHECK (voter_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+  WITH CHECK (voter_id = public.get_my_user_id());
 
 
--- alumni
-DROP POLICY IF EXISTS "alumni: all can read"  ON public.alumni;
-DROP POLICY IF EXISTS "alumni: admin manages" ON public.alumni;
-
+-- ALUMNI
 CREATE POLICY "alumni: all can read"
   ON public.alumni FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "alumni: admin manages"
   ON public.alumni FOR ALL TO authenticated USING (public.is_admin());
 
 
--- mentorship_requests
-DROP POLICY IF EXISTS "mentorship: own or admin read"       ON public.mentorship_requests;
-DROP POLICY IF EXISTS "mentorship: authenticated can request" ON public.mentorship_requests;
-DROP POLICY IF EXISTS "mentorship: admin updates status"    ON public.mentorship_requests;
-DROP POLICY IF EXISTS "mentorship: requester can delete own" ON public.mentorship_requests;
-
+-- MENTORSHIP REQUESTS
 CREATE POLICY "mentorship: own or admin read"
   ON public.mentorship_requests FOR SELECT TO authenticated
-  USING (requester_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()) OR public.is_admin());
+  USING (requester_id = public.get_my_user_id() OR public.is_admin());
+
 CREATE POLICY "mentorship: authenticated can request"
   ON public.mentorship_requests FOR INSERT TO authenticated
-  WITH CHECK (requester_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+  WITH CHECK (requester_id = public.get_my_user_id());
+
 CREATE POLICY "mentorship: admin updates status"
   ON public.mentorship_requests FOR UPDATE TO authenticated USING (public.is_admin());
+
 CREATE POLICY "mentorship: requester can delete own"
   ON public.mentorship_requests FOR DELETE TO authenticated
-  USING (requester_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+  USING (requester_id = public.get_my_user_id());
 
 
--- government_terms
-DROP POLICY IF EXISTS "gov_terms: all can read"  ON public.government_terms;
-DROP POLICY IF EXISTS "gov_terms: admin manages" ON public.government_terms;
-
+-- GOVERNMENT TERMS
 CREATE POLICY "gov_terms: all can read"
   ON public.government_terms FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "gov_terms: admin manages"
   ON public.government_terms FOR ALL TO authenticated USING (public.is_admin());
 
 
--- government_term_achievements
-DROP POLICY IF EXISTS "gov_achievements: all can read"  ON public.government_term_achievements;
-DROP POLICY IF EXISTS "gov_achievements: admin manages" ON public.government_term_achievements;
-
+-- GOVERNMENT TERM ACHIEVEMENTS
 CREATE POLICY "gov_achievements: all can read"
   ON public.government_term_achievements FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "gov_achievements: admin manages"
   ON public.government_term_achievements FOR ALL TO authenticated USING (public.is_admin());
 
 
--- government_term_members
-DROP POLICY IF EXISTS "gov_members_hist: all can read"  ON public.government_term_members;
-DROP POLICY IF EXISTS "gov_members_hist: admin manages" ON public.government_term_members;
-
+-- GOVERNMENT TERM MEMBERS
 CREATE POLICY "gov_members_hist: all can read"
   ON public.government_term_members FOR SELECT TO authenticated USING (true);
+
 CREATE POLICY "gov_members_hist: admin manages"
   ON public.government_term_members FOR ALL TO authenticated USING (public.is_admin());
 
@@ -508,7 +503,6 @@ CREATE POLICY "gov_members_hist: admin manages"
 -- ────────────────────────────────────────────
 --  STORAGE BUCKETS
 -- ────────────────────────────────────────────
-
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
@@ -526,14 +520,18 @@ DROP POLICY IF EXISTS "event-banners: public read"    ON storage.objects;
 CREATE POLICY "avatars: authenticated upload"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
 CREATE POLICY "avatars: public read"
   ON storage.objects FOR SELECT TO public USING (bucket_id = 'avatars');
+
 CREATE POLICY "avatars: own delete"
   ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
 CREATE POLICY "event-banners: gov+ upload"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'event-banners');
+
 CREATE POLICY "event-banners: public read"
   ON storage.objects FOR SELECT TO public USING (bucket_id = 'event-banners');
 
@@ -541,8 +539,7 @@ CREATE POLICY "event-banners: public read"
 -- ────────────────────────────────────────────
 --  VIEWS
 -- ────────────────────────────────────────────
-
-CREATE OR REPLACE VIEW public.current_government AS
+CREATE VIEW public.current_government AS
 SELECT
   u.id, u.name, u.student_id, u.email,
   u.photo_url, u.major, u.position, u.role, u.status,
@@ -552,7 +549,7 @@ LEFT JOIN public.government_terms gt ON gt.is_current = TRUE
 WHERE u.status = 'government'
 ORDER BY u.position;
 
-CREATE OR REPLACE VIEW public.election_results AS
+CREATE VIEW public.election_results AS
 SELECT
   e.id AS election_id, e.title, e.position, e.status,
   ec.id AS candidate_id, ec.name AS candidate_name,
@@ -566,7 +563,41 @@ JOIN public.election_candidates ec ON ec.election_id = e.id
 ORDER BY e.id, ec.votes DESC;
 
 
+-- ────────────────────────────────────────────
+--  SEED ADMIN PROFILE (for fuadhiyabo@gmail.com)
+-- ────────────────────────────────────────────
+DO $$
+DECLARE
+  v_auth_id UUID;
+BEGIN
+  -- Look up the auth.users ID for the admin email
+  SELECT id INTO v_auth_id FROM auth.users WHERE email = 'fuadhiyabo@gmail.com' LIMIT 1;
+  
+  -- If found, insert or update the profile in public.users as admin
+  IF v_auth_id IS NOT NULL THEN
+    INSERT INTO public.users (auth_id, name, student_id, email, role, status, major, batch)
+    VALUES (
+      v_auth_id,
+      'Fuad Hiyabo',
+      '3456788',
+      'fuadhiyabo@gmail.com',
+      'admin',
+      'active',
+      'Computer Science',
+      EXTRACT(YEAR FROM CURRENT_DATE)::TEXT
+    )
+    ON CONFLICT (auth_id) DO UPDATE
+    SET role = 'admin', status = 'active';
+    
+    RAISE NOTICE 'Admin profile seeded for fuadhiyabo@gmail.com';
+  ELSE
+    RAISE NOTICE 'Admin user not found in auth.users. Please register this email first in the app, then run this block to elevate to admin.';
+  END IF;
+END $$;
+
+
 -- ============================================================
 --  ✅  Done. All 12 tables, indexes, RLS policies,
---      triggers, views and storage buckets are ready.
+--      triggers, views, storage policies, and admin seeding
+--      are complete and ready for use.
 -- ============================================================
