@@ -205,6 +205,11 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const completeOnboarding = (profile) => {
+    setCurrentUser(profile);
+    loadPublicData(profile.id);
+  };
+
   // ─────────────────────────────────────────
   //  ADMIN: USER MANAGEMENT
   // ─────────────────────────────────────────
@@ -451,6 +456,7 @@ export const AppProvider = ({ children }) => {
         register,
         // Profile
         updateProfile,
+        completeOnboarding,
         // Admin
         updateUserAdmin,
         approveStudent,

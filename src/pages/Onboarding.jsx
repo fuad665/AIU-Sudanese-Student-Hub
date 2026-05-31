@@ -9,7 +9,7 @@ import Button from '../components/Button';
 import UploadImage from '../components/UploadImage';
 
 const Onboarding = () => {
-  const { authSession, currentUser, showToast } = useContext(AppContext);
+  const { authSession, currentUser, showToast, completeOnboarding } = useContext(AppContext);
   const navigate = useNavigate();
 
   // If there's no auth session, they shouldn't be here
@@ -83,14 +83,15 @@ const Onboarding = () => {
     setIsSubmitting(true);
     try {
       // Pass the email from the auth session
-      await insertUserProfile(authSession.user.id, {
+      const profile = await insertUserProfile(authSession.user.id, {
         ...formData,
         email: authSession.user.email
       });
       
       showToast('Profile completed successfully!', 'success');
-      // Hard redirect to force AppContext to re-fetch the user profile
-      window.location.href = '/dashboard';
+      // Update context state and transition to dashboard instantly without page reload
+      completeOnboarding(profile);
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       showToast(err.message || 'Failed to save profile. Please try again.', 'error');
       setIsSubmitting(false);
