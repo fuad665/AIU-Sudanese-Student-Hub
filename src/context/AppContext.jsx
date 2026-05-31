@@ -44,6 +44,7 @@ export const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   // ─── Core state ───────────────────────────
   const [currentUser,       setCurrentUser]       = useState(null);
+  const [authSession,       setAuthSession]       = useState(null);
   const [users,             setUsers]             = useState([]);
   const [announcements,     setAnnouncements]     = useState([]);
   const [events,            setEvents]            = useState([]);
@@ -88,6 +89,7 @@ export const AppProvider = ({ children }) => {
     let isMounted = true;
 
     const bootstrap = async (session) => {
+      if (isMounted) setAuthSession(session);
       if (session?.user) {
         try {
           const profile = await fetchUserByAuthId(session.user.id);
@@ -159,12 +161,12 @@ export const AppProvider = ({ children }) => {
     showToast('Logged out successfully.', 'info');
   };
 
-  /** Register a new student: create Supabase Auth account then insert profile row */
-  const register = async (formData) => {
+  /** Register a new student: ONLY create Supabase Auth account */
+  const register = async (email, password) => {
     // 1. Create Supabase Auth user
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email:    formData.email,
-      password: formData.password,
+      email,
+      password,
     });
 
     if (signUpError) {
@@ -172,21 +174,8 @@ export const AppProvider = ({ children }) => {
       return false;
     }
 
-    const authId = authData.user?.id;
-    if (!authId) {
-      showToast('Registration failed. Please try again.', 'error');
-      return false;
-    }
-
-    try {
-      // 2. Insert profile row
-      await insertUserProfile(authId, formData);
-      showToast('Registration successful! You can now log in.', 'success');
-      return true;
-    } catch (err) {
-      showToast(err.message, 'error');
-      return false;
-    }
+    showToast('Registration successful! Please log in.', 'success');
+    return true;
   };
 
   // ─────────────────────────────────────────
@@ -446,6 +435,7 @@ export const AppProvider = ({ children }) => {
         // State
         loading,
         currentUser,
+        authSession,
         users,
         announcements,
         events,

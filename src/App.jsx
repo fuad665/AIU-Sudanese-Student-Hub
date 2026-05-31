@@ -4,6 +4,7 @@ import { AppProvider } from './context/AppContext';
 import MainLayout from './layouts/MainLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import MyCard from './pages/MyCard';
@@ -23,6 +24,7 @@ function App() {
           {/* Public Authentication Channels */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
           {/* Gated Application Layout Wrapper */}
           <Route path="/" element={<MainLayout />}>

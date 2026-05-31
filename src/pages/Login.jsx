@@ -1,56 +1,33 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
-import { User, Lock, ArrowRight, ChevronDown, ShieldCheck, Users, GraduationCap } from 'lucide-react';
+import { User, Lock, ArrowRight } from 'lucide-react';
 import Input from '../components/Input';
 import Button from '../components/Button';
 
-/* No mock quick accounts */
-
-const ROLE_OPTIONS = [
-  { value: 'member', label: 'Member' },
-  { value: 'admin',  label: 'Admin'  }
-];
-
-/* ─────────────────────────────────────────────
-   LOGIN COMPONENT
-───────────────────────────────────────────── */
 const Login = () => {
-  const { login, currentUser } = useContext(AppContext);
+  const { login, currentUser, authSession } = useContext(AppContext);
   const navigate = useNavigate();
 
   const [loginId,    setLoginId]    = useState('');
   const [password,   setPassword]   = useState('');
-  const [role,       setRole]       = useState('member');
   const [isLoading,  setIsLoading]  = useState(false);
-  const [dropOpen,   setDropOpen]   = useState(false);
-  const dropRef = useRef(null);
 
   useEffect(() => {
-    if (currentUser) navigate('/dashboard');
-  }, [currentUser, navigate]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropRef.current && !dropRef.current.contains(e.target)) {
-        setDropOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+    if (currentUser) {
+      navigate(currentUser.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+    } else if (authSession) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [currentUser, authSession, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!loginId || !password) return;
     setIsLoading(true);
-    const success = await login(loginId, password);
+    await login(loginId, password);
     setIsLoading(false);
-    if (success) navigate('/dashboard');
   };
-
-  const selectedRoleLabel = ROLE_OPTIONS.find(r => r.value === role)?.label || 'Member';
 
   return (
     <div style={pageStyle}>
@@ -104,7 +81,10 @@ const Login = () => {
 
             {/* Password */}
             <div style={fieldGroupStyle}>
-              <label style={fieldLabelStyle}>Password</label>
+              <div style={pwdLabelRowStyle}>
+                <label style={fieldLabelStyle}>Password</label>
+                <a href="#" style={forgotPwdLinkStyle}>Forgot?</a>
+              </div>
               <div style={inputWrapStyle}>
                 <Lock size={16} color="#9CA3AF" style={inputIconStyle} />
                 <input
@@ -119,233 +99,192 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Role — compact inline dropdown */}
-            <div style={fieldGroupStyle} ref={dropRef}>
-              <label style={fieldLabelStyle}>Sign in as</label>
-              <div style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={() => setDropOpen(prev => !prev)}
-                  style={roleButtonStyle}
-                  aria-haspopup="listbox"
-                  aria-expanded={dropOpen}
-                >
-                  <span style={{ color: 'var(--dark)', fontWeight: '600', fontSize: '14px' }}>
-                    {selectedRoleLabel}
-                  </span>
-                  <ChevronDown
-                    size={15}
-                    color="#9CA3AF"
-                    style={{
-                      transition: 'transform 0.2s ease',
-                      transform: dropOpen ? 'rotate(180deg)' : 'rotate(0deg)'
-                    }}
-                  />
-                </button>
-
-                {/* Compact dropdown panel */}
-                {dropOpen && (
-                  <div style={dropPanelStyle} role="listbox">
-                    {ROLE_OPTIONS.map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        role="option"
-                        aria-selected={role === opt.value}
-                        onClick={() => { setRole(opt.value); setDropOpen(false); }}
-                        style={{
-                          ...dropItemStyle,
-                          backgroundColor: role === opt.value ? '#FFFBEB' : 'transparent',
-                          color: role === opt.value ? '#B45309' : 'var(--dark)',
-                          fontWeight: role === opt.value ? '700' : '500'
-                        }}
-                      >
-                        {role === opt.value && <span style={dropCheckStyle}>✓</span>}
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={{
-                ...submitBtnStyle,
-                opacity: isLoading ? 0.75 : 1,
-                cursor: isLoading ? 'not-allowed' : 'pointer'
-              }}
-            >
+            <button type="submit" disabled={isLoading} style={submitBtnStyle}>
               {isLoading ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={spinnerStyle} />
-                  Signing In...
-                </span>
+                <span style={spinnerInnerStyle} />
               ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  Sign In <ArrowRight size={17} />
-                </span>
+                <>
+                  <span>Sign In to Portal</span>
+                  <ArrowRight size={18} />
+                </>
               )}
             </button>
           </form>
-
-          {/* Register link */}
-          <p style={registerPromptStyle}>
-            New student?{' '}
-            <Link to="/register" style={registerLinkStyle}>Create an account</Link>
-          </p>
-
+          
+          {/* Sign Up Link */}
+          <div style={signupWrapperStyle}>
+            <span style={signupTextStyle}>Don't have an account? </span>
+            <Link to="/register" style={signupLinkStyle}>Create one now</Link>
+          </div>
         </div>
 
-        {/* Footer notice */}
-        <p style={footerNoteStyle}>
-          For official use by registered SSA members only.
-        </p>
+        {/* Footer Text */}
+        <div style={footerStyle}>
+          <p>Secure Portal • AIU Sudanese Students Association</p>
+        </div>
       </div>
     </div>
   );
 };
 
-/* ─────────────────────────────────────────────
-   STYLES
-───────────────────────────────────────────── */
+// ─────────────────────────────────────────────
+// STYLES
+// ─────────────────────────────────────────────
+
 const pageStyle = {
   minHeight: '100vh',
   width: '100vw',
+  backgroundColor: '#f1f5f9',
   display: 'flex',
-  alignItems: 'center',
   justifyContent: 'center',
-  padding: '32px 20px',
+  alignItems: 'center',
   position: 'relative',
   overflow: 'hidden',
-  background: 'linear-gradient(145deg, #111827 0%, #1F2937 45%, #374151 100%)',
-  fontFamily: 'var(--font-body)'
+  fontFamily: "'Inter', sans-serif"
 };
 
+// Decorative background orbs
 const orb1Style = {
-  position: 'absolute', top: '-15%', left: '-10%',
-  width: '55vw', height: '55vw', borderRadius: '50%',
-  background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)',
-  pointerEvents: 'none'
+  position: 'absolute',
+  top: '-10%',
+  left: '-10%',
+  width: '500px',
+  height: '500px',
+  background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0) 70%)',
+  borderRadius: '50%',
+  zIndex: 0
 };
 const orb2Style = {
-  position: 'absolute', bottom: '-20%', right: '-15%',
-  width: '60vw', height: '60vw', borderRadius: '50%',
-  background: 'radial-gradient(circle, rgba(184,134,11,0.1) 0%, transparent 70%)',
-  pointerEvents: 'none'
+  position: 'absolute',
+  bottom: '-20%',
+  right: '-10%',
+  width: '600px',
+  height: '600px',
+  background: 'radial-gradient(circle, rgba(245,158,11,0.1) 0%, rgba(245,158,11,0) 70%)',
+  borderRadius: '50%',
+  zIndex: 0
 };
 const orb3Style = {
-  position: 'absolute', top: '50%', left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: '40vw', height: '40vw', borderRadius: '50%',
-  background: 'radial-gradient(circle, rgba(245,158,11,0.04) 0%, transparent 70%)',
-  pointerEvents: 'none'
+  position: 'absolute',
+  top: '20%',
+  right: '15%',
+  width: '300px',
+  height: '300px',
+  background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0) 70%)',
+  borderRadius: '50%',
+  zIndex: 0
 };
 
 const wrapperStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: '16px',
+  position: 'relative',
+  zIndex: 1,
   width: '100%',
   maxWidth: '440px',
-  zIndex: 10,
-  animation: 'slide-up 0.4s ease'
+  padding: '0 20px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '24px'
 };
 
 const cardStyle = {
-  width: '100%',
-  backgroundColor: '#FFFFFF',
-  borderRadius: '20px',
-  boxShadow: '0 24px 64px rgba(0,0,0,0.35), 0 8px 24px rgba(0,0,0,0.2)',
+  backgroundColor: '#ffffff',
+  borderRadius: '24px',
+  boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05), 0 0 10px rgba(0,0,0,0.01)',
   overflow: 'hidden',
-  border: '1px solid rgba(255,255,255,0.1)'
+  position: 'relative'
 };
 
 const accentBarStyle = {
-  height: '4px',
-  background: 'linear-gradient(90deg, #F59E0B 0%, #B8860B 50%, #F59E0B 100%)'
+  height: '6px',
+  width: '100%',
+  background: 'linear-gradient(90deg, #1d4ed8, #3b82f6, #f59e0b)'
 };
 
 const cardHeaderStyle = {
+  padding: '32px 32px 24px',
   display: 'flex',
   alignItems: 'center',
-  gap: '14px',
-  padding: '28px 32px 20px 32px',
-  background: 'linear-gradient(135deg, #F9FAFB 0%, #FFFBEB 100%)',
-  borderBottom: '1px solid #F3F4F6'
+  gap: '16px'
 };
 
 const flagEmojiStyle = {
-  fontSize: '38px',
+  fontSize: '32px',
   lineHeight: 1,
-  flexShrink: 0
+  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
 };
 
 const portalTitleStyle = {
-  fontFamily: 'var(--font-heading)',
   fontSize: '18px',
-  fontWeight: '800',
-  color: '#1F2937',
-  lineHeight: 1.2
+  fontWeight: '700',
+  color: '#0f172a',
+  margin: '0 0 4px 0',
+  letterSpacing: '-0.3px'
 };
 
 const portalSubStyle = {
-  fontSize: '11px',
-  color: '#B8860B',
-  fontWeight: '700',
-  textTransform: 'uppercase',
-  letterSpacing: '0.07em',
-  marginTop: '3px'
+  fontSize: '13px',
+  color: '#64748b',
+  margin: 0,
+  fontWeight: '500'
 };
 
 const dividerStyle = {
   height: '1px',
-  backgroundColor: '#F3F4F6',
-  margin: '0'
+  backgroundColor: '#f1f5f9',
+  margin: '0 32px'
 };
 
 const welcomeAreaStyle = {
-  padding: '24px 32px 0 32px'
+  padding: '24px 32px 8px',
+  textAlign: 'center'
 };
 
 const welcomeHeadingStyle = {
-  fontFamily: 'var(--font-heading)',
-  fontSize: '21px',
-  fontWeight: '800',
-  color: '#1F2937'
+  fontSize: '24px',
+  fontWeight: '700',
+  color: '#1e293b',
+  margin: '0 0 8px 0',
+  letterSpacing: '-0.5px'
 };
 
 const welcomeSubStyle = {
-  fontSize: '13px',
-  color: '#6B7280',
-  marginTop: '4px',
+  fontSize: '15px',
+  color: '#64748b',
+  margin: 0,
   lineHeight: 1.5
 };
 
 const formStyle = {
-  padding: '20px 32px 0 32px',
+  padding: '24px 32px 32px',
   display: 'flex',
   flexDirection: 'column',
-  gap: '14px'
+  gap: '20px'
 };
 
 const fieldGroupStyle = {
   display: 'flex',
   flexDirection: 'column',
-  gap: '6px',
-  position: 'relative'
+  gap: '8px'
+};
+
+const pwdLabelRowStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
 };
 
 const fieldLabelStyle = {
-  fontSize: '12px',
-  fontWeight: '700',
-  color: '#374151',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em'
+  fontSize: '14px',
+  fontWeight: '600',
+  color: '#334155'
+};
+
+const forgotPwdLinkStyle = {
+  fontSize: '13px',
+  color: '#3b82f6',
+  fontWeight: '500',
+  textDecoration: 'none'
 };
 
 const inputWrapStyle = {
@@ -356,148 +295,75 @@ const inputWrapStyle = {
 
 const inputIconStyle = {
   position: 'absolute',
-  left: '14px',
-  pointerEvents: 'none',
-  flexShrink: 0
+  left: '16px'
 };
 
 const inputStyle = {
   width: '100%',
-  padding: '11px 14px 11px 42px',
-  fontSize: '14px',
-  fontFamily: 'var(--font-body)',
-  color: '#1F2937',
-  backgroundColor: '#F9FAFB',
-  border: '1.5px solid #E5E7EB',
+  height: '48px',
+  padding: '0 16px 0 44px',
   borderRadius: '12px',
+  border: '1px solid #e2e8f0',
+  backgroundColor: '#f8fafc',
+  fontSize: '15px',
+  color: '#1e293b',
   outline: 'none',
-  transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
-};
-
-/* Role dropdown trigger */
-const roleButtonStyle = {
-  width: '180px',  /* Narrower than full width — compact */
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  padding: '10px 14px',
-  fontSize: '14px',
-  fontFamily: 'var(--font-body)',
-  backgroundColor: '#F9FAFB',
-  border: '1.5px solid #E5E7EB',
-  borderRadius: '10px',
-  cursor: 'pointer',
-  outline: 'none',
-  transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
-};
-
-/* Small dropdown panel */
-const dropPanelStyle = {
-  position: 'absolute',
-  top: 'calc(100% + 6px)',
-  left: '0',
-  width: '180px',
-  backgroundColor: '#FFFFFF',
-  border: '1.5px solid #E5E7EB',
-  borderRadius: '10px',
-  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-  zIndex: 50,
-  overflow: 'hidden',
-  animation: 'slide-down 0.15s ease'
-};
-
-const dropItemStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '8px',
-  width: '100%',
-  padding: '10px 14px',
-  fontSize: '13px',
-  fontFamily: 'var(--font-body)',
-  border: 'none',
-  cursor: 'pointer',
-  textAlign: 'left',
-  transition: 'background-color 0.1s ease'
-};
-
-const dropCheckStyle = {
-  fontSize: '12px',
-  color: '#B45309',
-  fontWeight: '800'
+  transition: 'all 0.2s ease',
+  boxSizing: 'border-box'
 };
 
 const submitBtnStyle = {
-  width: '100%',
-  padding: '13px',
-  marginTop: '6px',
-  fontFamily: 'var(--font-body)',
-  fontSize: '15px',
-  fontWeight: '700',
-  color: '#1F2937',
-  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+  marginTop: '8px',
+  height: '52px',
+  borderRadius: '14px',
+  backgroundColor: '#1d4ed8',
+  color: '#ffffff',
+  fontSize: '16px',
+  fontWeight: '600',
   border: 'none',
-  borderRadius: '12px',
-  boxShadow: '0 4px 14px rgba(245,158,11,0.3)',
-  transition: 'all 0.15s ease',
-  letterSpacing: '0.01em'
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '12px',
+  transition: 'all 0.2s ease',
+  boxShadow: '0 4px 12px rgba(29, 78, 216, 0.25)',
+  width: '100%'
 };
 
-const spinnerStyle = {
-  width: '16px',
-  height: '16px',
+const signupWrapperStyle = {
+  padding: '0 32px 32px',
+  textAlign: 'center',
+  borderTop: '1px solid #f1f5f9',
+  paddingTop: '24px',
+};
+
+const signupTextStyle = {
+  color: '#64748b',
+  fontSize: '14px',
+};
+
+const signupLinkStyle = {
+  color: '#f59e0b',
+  fontWeight: '600',
+  textDecoration: 'none',
+  fontSize: '14px',
+};
+
+const spinnerInnerStyle = {
+  width: '24px',
+  height: '24px',
+  border: '3px solid rgba(255,255,255,0.3)',
+  borderTop: '3px solid #ffffff',
   borderRadius: '50%',
-  border: '2px solid rgba(31,41,55,0.25)',
-  borderTopColor: '#1F2937',
-  display: 'inline-block',
-  animation: 'spin 0.7s linear infinite'
+  animation: 'spin 1s linear infinite'
 };
 
-const registerPromptStyle = {
+const footerStyle = {
   textAlign: 'center',
   fontSize: '13px',
-  color: '#9CA3AF',
-  padding: '16px 32px 20px 32px'
-};
-
-const registerLinkStyle = {
-  color: '#D97706',
-  textDecoration: 'none',
-  fontWeight: '700'
-};
-
-/* Quick Fill styles removed */
-
-const footerNoteStyle = {
-  fontSize: '11px',
-  color: 'rgba(255,255,255,0.4)',
-  textAlign: 'center',
+  color: '#94a3b8',
   fontWeight: '500'
 };
-
-/* Input focus styles via global style injection */
-if (typeof document !== 'undefined') {
-  const s = document.createElement('style');
-  s.textContent = `
-    input[style*="inputStyle"]:focus,
-    input[placeholder]:focus {
-      border-color: #F59E0B !important;
-      box-shadow: 0 0 0 4px rgba(245,158,11,0.12) !important;
-      background-color: #fff !important;
-    }
-    button[style*="roleButtonStyle"]:focus,
-    button[style*="roleButtonStyle"]:hover {
-      border-color: #F59E0B !important;
-      box-shadow: 0 0 0 3px rgba(245,158,11,0.1) !important;
-    }
-    button[style*="dropItemStyle"]:hover {
-      background-color: #FFFBEB !important;
-    }
-    button[style*="submitBtnStyle"]:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(245,158,11,0.4) !important;
-    }
-  `;
-  document.head.appendChild(s);
-}
 
 export default Login;

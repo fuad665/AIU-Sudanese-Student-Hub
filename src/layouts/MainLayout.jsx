@@ -7,18 +7,21 @@ import MobileNav from './MobileNav';
 import { X } from 'lucide-react';
 
 const MainLayout = () => {
-  const { currentUser, loading } = useContext(AppContext);
+  const { currentUser, authSession, loading } = useContext(AppContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Protected Auth Gates: Redirect to login if user session is absent
-  // Protected Auth Gate
   useEffect(() => {
-    if (!loading && !currentUser) {
-      navigate('/login');
+    if (!loading) {
+      if (!authSession) {
+        navigate('/login');
+      } else if (!currentUser) {
+        navigate('/onboarding');
+      }
     }
-  }, [currentUser, loading, navigate]);
+  }, [currentUser, authSession, loading, navigate]);
 
   // Close mobile drawer on route changes
   useEffect(() => {
