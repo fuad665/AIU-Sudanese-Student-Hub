@@ -87,8 +87,14 @@ export const AppProvider = ({ children }) => {
   // Runs once on mount and whenever Supabase Auth state changes.
   useEffect(() => {
     let isMounted = true;
+    let lastSessionId = undefined;
 
     const bootstrap = async (session) => {
+      const sessionId = session?.user?.id || null;
+      if (sessionId === lastSessionId) return;
+      lastSessionId = sessionId;
+
+      if (isMounted) setLoading(true);
       if (isMounted) setAuthSession(session);
       if (session?.user) {
         try {
@@ -98,7 +104,8 @@ export const AppProvider = ({ children }) => {
             // Fetch public data in background (do not await to speed up loading)
             loadPublicData(profile.id);
           }
-        } catch {
+        } catch (err) {
+          console.error('[SSA] Failed to fetch user profile:', err);
           // Profile not yet created (race condition after signup — handled in register())
           if (isMounted) setCurrentUser(null);
         }

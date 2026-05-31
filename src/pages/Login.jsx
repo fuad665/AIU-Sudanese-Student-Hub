@@ -6,7 +6,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 
 const Login = () => {
-  const { login, currentUser, authSession } = useContext(AppContext);
+  const { login, currentUser, authSession, loading } = useContext(AppContext);
   const navigate = useNavigate();
 
   const [loginId,    setLoginId]    = useState('');
@@ -14,12 +14,14 @@ const Login = () => {
   const [isLoading,  setIsLoading]  = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
-      navigate(currentUser.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
-    } else if (authSession) {
-      navigate('/onboarding', { replace: true });
+    if (!loading) {
+      if (currentUser) {
+        navigate(currentUser.role === 'admin' ? '/admin' : '/dashboard', { replace: true });
+      } else if (authSession) {
+        navigate('/onboarding', { replace: true });
+      }
     }
-  }, [currentUser, authSession, navigate]);
+  }, [currentUser, authSession, loading, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

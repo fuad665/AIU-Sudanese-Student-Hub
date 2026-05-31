@@ -24,11 +24,8 @@ test.describe.serial('Authentication Flows', () => {
   test('should register a new user successfully', async ({ page }) => {
     await page.goto('/register');
     
-    // Fill out the registration form
-    await page.fill('input[name="name"]', 'Playwright Test User');
-    await page.fill('input[name="studentId"]', testStudentId);
+    // Fill out the simplified registration form
     await page.fill('input[name="email"]', testEmail);
-    await page.selectOption('select[name="major"]', 'Computer Science');
     await page.fill('input[name="password"]', testPassword);
     await page.fill('input[name="confirmPassword"]', testPassword);
     
@@ -44,23 +41,11 @@ test.describe.serial('Authentication Flows', () => {
       });
     });
 
-    await page.route('**/rest/v1/users*', async route => {
-      if (route.request().method() === 'POST') {
-        await route.fulfill({
-          status: 201,
-          contentType: 'application/json',
-          body: JSON.stringify([{ id: 1, auth_id: 'mock-uuid', name: 'Playwright Test User' }])
-        });
-      } else {
-        await route.continue();
-      }
-    });
-
     // Submit
     await page.click('button[type="submit"]');
 
     // Should see success message or redirect
-    await expect(page.locator('text=Registration Completed!')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h2:has-text("Registration Successful!")')).toBeVisible({ timeout: 10000 });
   });
 
   test('should login with the newly created user', async ({ page }) => {
