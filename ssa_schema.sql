@@ -13,7 +13,6 @@
 -- ────────────────────────────────────────────
 --  TEARDOWN (DROP OLD DATABASE OBJECTS)
 -- ────────────────────────────────────────────
-RAISE NOTICE 'Starting database teardown...';
 
 -- Drop Views
 DROP VIEW IF EXISTS public.current_government CASCADE;
@@ -49,8 +48,6 @@ DROP FUNCTION IF EXISTS public.get_my_user_id() CASCADE;
 DROP FUNCTION IF EXISTS public.get_my_role() CASCADE;
 DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
 DROP FUNCTION IF EXISTS public.is_gov_or_admin() CASCADE;
-
-RAISE NOTICE 'Teardown complete. Rebuilding schema...';
 
 
 -- ────────────────────────────────────────────
