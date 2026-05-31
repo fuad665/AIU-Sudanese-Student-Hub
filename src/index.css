@@ -413,3 +413,41 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Mobile nav bottom helper ── */
 .full-width-item { grid-column: 1 / -1 !important; }
 .full-width       { grid-column: 1 / -1 !important; }
+
+/* ── Premium UI Enhancements ── */
+.welcome-banner-grad {
+  background: linear-gradient(135deg, #7c2d12 0%, #b45309 30%, #d97706 70%, #f59e0b 100%) !important;
+  box-shadow: 0 20px 40px -10px rgba(217, 119, 6, 0.25), 0 8px 16px -8px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-banner-grad::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 60%);
+  pointer-events: none;
+  animation: slow-rotate 25s linear infinite;
+}
+
+@keyframes slow-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.premium-card {
+  background: var(--surface);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-normal);
+}
+.premium-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-premium);
+}

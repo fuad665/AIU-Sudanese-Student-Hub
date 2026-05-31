@@ -86,7 +86,7 @@ const Dashboard = () => {
   return (
     <div style={dashboardWrapperStyle}>
       {/* Greetings Header */}
-      <div style={welcomeBannerStyle} className="gradient-bg">
+      <div style={welcomeBannerStyle} className="welcome-banner-grad">
         <div style={welcomeTextStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '4px' }}>
             <h2 style={welcomeTitleStyle}>Salam, {currentUser.name}!</h2>

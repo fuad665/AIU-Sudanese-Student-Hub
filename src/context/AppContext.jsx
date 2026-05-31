@@ -95,7 +95,8 @@ export const AppProvider = ({ children }) => {
           const profile = await fetchUserByAuthId(session.user.id);
           if (isMounted) {
             setCurrentUser(profile);
-            await loadPublicData(profile.id);
+            // Fetch public data in background (do not await to speed up loading)
+            loadPublicData(profile.id);
           }
         } catch {
           // Profile not yet created (race condition after signup — handled in register())
@@ -104,7 +105,8 @@ export const AppProvider = ({ children }) => {
       } else {
         if (isMounted) {
           setCurrentUser(null);
-          await loadPublicData();
+          // Fetch public data in background (do not await to speed up loading)
+          loadPublicData();
         }
       }
       if (isMounted) setLoading(false);

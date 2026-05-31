@@ -100,16 +100,17 @@ const Login = () => {
             </div>
 
             {/* Submit */}
-            <button type="submit" disabled={isLoading} style={submitBtnStyle}>
-              {isLoading ? (
-                <span style={spinnerInnerStyle} />
-              ) : (
-                <>
-                  <span>Sign In to Portal</span>
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              size="lg"
+              isLoading={isLoading}
+              icon={ArrowRight}
+              style={{ marginTop: '8px' }}
+            >
+              Sign In to Portal
+            </Button>
           </form>
           
           {/* Sign Up Link */}
@@ -151,7 +152,7 @@ const orb1Style = {
   left: '-10%',
   width: '500px',
   height: '500px',
-  background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0) 70%)',
+  background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0) 70%)',
   borderRadius: '50%',
   zIndex: 0
 };
@@ -198,7 +199,7 @@ const cardStyle = {
 const accentBarStyle = {
   height: '6px',
   width: '100%',
-  background: 'linear-gradient(90deg, #1d4ed8, #3b82f6, #f59e0b)'
+  background: 'linear-gradient(90deg, #b45309, #d97706, #f59e0b)'
 };
 
 const cardHeaderStyle = {
@@ -282,7 +283,7 @@ const fieldLabelStyle = {
 
 const forgotPwdLinkStyle = {
   fontSize: '13px',
-  color: '#3b82f6',
+  color: '#d97706',
   fontWeight: '500',
   textDecoration: 'none'
 };
