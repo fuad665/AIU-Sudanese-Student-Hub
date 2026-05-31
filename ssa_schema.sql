@@ -4,9 +4,15 @@
 --  ⚠️  WARNING: THIS SCRIPT CLEARS ALL EXISTING TABLES, VIEWS,
 --      TYPES AND FUNCTIONS BEFORE RECREATING THEM (TEARDOWN).
 --
+--  💡 NOTE: This schema is also split into 4 parts in your workspace:
+--     1. schema_part1_teardown.sql
+--     2. schema_part2_tables.sql
+--     3. schema_part3_policies.sql
+--     4. schema_part4_views_seed.sql
+--
 --  HOW TO USE:
 --  1. Go to https://supabase.com/dashboard/project/oydscytbdhpwyrmffosj/sql/new
---  2. Paste the ENTIRE file and click Run.
+--  2. Paste the ENTIRE file and click Run (or run the 4 parts sequentially).
 -- ============================================================
 
 
